@@ -1,0 +1,39 @@
+{
+  "name": "@technikali/sso-react",
+  "version": "1.0.0",
+  "description": "React SSO client for Bansud LGU single sign-on. Works with the technikali/sso-client Laravel package.",
+  "keywords": ["sso", "oauth", "react", "lgu", "bansud", "technikali"],
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "axios": ">=1.0.0",
+    "react": ">=18.0.0",
+    "zustand": ">=4.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "axios": "^1.7.0",
+    "react": "^18.3.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.5.0",
+    "zustand": "^4.5.0"
+  }
+}
