@@ -18,6 +18,10 @@ export type { UseLogoutOptions } from './useLogout.js'
 export { SsoProvider, useSso } from './SsoProvider.js'
 export type { SsoProviderProps, SsoContextValue } from './SsoProvider.js'
 
+// ─── UI ───────────────────────────────────────────────────────────────────────
+export { SsoLoader } from './SsoLoader.js'
+export type { SsoLoaderProps } from './SsoLoader.js'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type {
   SsoConfig,
