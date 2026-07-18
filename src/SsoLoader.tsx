@@ -19,13 +19,17 @@ export interface SsoLoaderProps {
   label?: string
   /** Path to the loader image. Default: '/images/loader.png' */
   imageSrc?: string
-  /** Render full-screen (min-h-screen, centered) or inline. Default: true */
+  /** Render full-screen (fixed to the viewport, centered) or inline. Default: true */
   fullScreen?: boolean
 }
 
 export function SsoLoader({ label = 'Signing you in…', imageSrc = '/images/loader.png', fullScreen = true }: SsoLoaderProps) {
+  // `fixed inset-0` centers against the viewport directly, regardless of
+  // ancestor height — `min-h-screen` only reserves height if it's actually
+  // the tallest box in the flow, which isn't guaranteed once this drops into
+  // an arbitrary consuming app's route tree.
   const wrapperClass = fullScreen
-    ? 'flex min-h-screen items-center justify-center bg-background'
+    ? 'fixed inset-0 flex items-center justify-center bg-background'
     : 'flex items-center justify-center'
 
   return (
