@@ -22,6 +22,9 @@ export type { SsoProviderProps, SsoContextValue } from './SsoProvider.js'
 export { SsoLoader } from './SsoLoader.js'
 export type { SsoLoaderProps } from './SsoLoader.js'
 
+export { useAppBranding, isImageIcon } from './useAppBranding.js'
+export type { AppBranding } from './useAppBranding.js'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type {
   SsoConfig,

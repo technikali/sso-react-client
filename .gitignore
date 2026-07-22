@@ -3,3 +3,4 @@ dist/
 *.log
 .DS_Store
 tsup.config.bundled_*.mjs
+dist_types/
