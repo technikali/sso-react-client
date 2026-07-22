@@ -1,0 +1,49 @@
+name: Deploy @technikali/sso-react
+
+# Publishes the built package to a shared location on the server
+# (/var/www/packages/sso-react) so it exists as a stable, versioned copy
+# outside any single consuming app's own deploy. Each app's own CI
+# (admin.bansud, office.bansud, crms.bansud, events.bansud, ...) still
+# checks this repo out fresh and builds it into its own bundle — this
+# workflow doesn't change that. It just keeps a canonical built copy on the
+# server for anything that wants to `file:`-link against it directly rather
+# than re-fetching from GitHub, and gives us one place to confirm what's
+# actually live in production.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy to server
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "dist/,package.json,package-lock.json"
+          target: "/var/www/packages/sso-react"
+          strip_components: 0
