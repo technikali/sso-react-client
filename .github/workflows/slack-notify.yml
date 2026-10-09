@@ -1,0 +1,66 @@
+name: Slack Commit Notification
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+
+jobs:
+  notify-slack:
+    runs-on: ubuntu-latest
+    # A branch deletion is also a "push" event, but it has no head commit.
+    if: github.event.deleted != true
+    # Secrets can't be tested in `if:` directly, so expose it as an env var.
+    # It's empty when SLACK_WEBHOOK_URL isn't visible to this job — not
+    # created, an *environment* secret (this job has no `environment:`), an
+    # org secret this repo wasn't granted, or saved as a Variable instead.
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+    steps:
+      - name: Check Slack webhook secret
+        if: env.SLACK_WEBHOOK_URL == ''
+        run: echo "::warning title=Slack notification skipped::SLACK_WEBHOOK_URL is not available to this repository. Add it as a repository secret, or as an organization secret with access granted to this repository (not as an environment secret or a variable)."
+
+      # Built with jq rather than pasting ${{ github.event.head_commit.message }}
+      # straight into the JSON: a commit message containing a quote or a line
+      # break would otherwise produce invalid JSON and the notification fails.
+      - name: Build Slack message
+        if: env.SLACK_WEBHOOK_URL != ''
+        env:
+          REPOSITORY: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+          AUTHOR: ${{ github.actor }}
+          COMMIT_SHA: ${{ github.sha }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          jq -n \
+            --arg repo "$REPOSITORY" \
+            --arg branch "$BRANCH" \
+            --arg author "$AUTHOR" \
+            --arg sha "$COMMIT_SHA" \
+            --arg message "$COMMIT_MESSAGE" \
+            '
+            # Slack mrkdwn treats &, < and > as control characters.
+            def esc: gsub("&"; "&amp;") | gsub("<"; "&lt;") | gsub(">"; "&gt;");
+            {
+              text: "🚀 New commit pushed to \($repo)",
+              blocks: [
+                {
+                  type: "section",
+                  text: {
+                    type: "mrkdwn",
+                    text: "🚀 *New GitHub Commit*\n\n*Repository:* `\($repo)`\n*Branch:* `\($branch)`\n*Author:* Job Ferera (<https://mangjuan.store|mangjuan.store>) - \($author | esc)\n*Commit:* `\($sha)`\n*Message:* \($message | esc)\n\n<https://app.bansud.gov.ph|View Changes>"
+                  }
+                }
+              ]
+            }' > slack-payload.json
+
+      - name: Notify Slack
+        if: env.SLACK_WEBHOOK_URL != ''
+        uses: slackapi/slack-github-action@v2.1.1
+        with:
+          webhook: ${{ env.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload-file-path: ./slack-payload.json

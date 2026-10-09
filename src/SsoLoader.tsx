@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { isImageIcon, useAppBranding } from './useAppBranding.js'
 
 /**
@@ -9,12 +10,19 @@ import { isImageIcon, useAppBranding } from './useAppBranding.js'
  * own bespoke spinner/markup. Import it from @technikali/sso-react wherever a
  * login route needs to render the in-flight SSO state.
  *
+ * Styling is plain inline styles (plus a scoped <style> block for keyframes)
+ * rather than Tailwind utility classNames — this package is consumed by both
+ * Tailwind apps and MUI-only apps (e.g. my.bansud has no Tailwind pipeline at
+ * all), and utility classNames silently do nothing where Tailwind isn't
+ * configured. Previously this meant `h-14 w-14`/`fixed inset-0` etc. were
+ * inert there, so the <img> fell back to its native pixel size with no
+ * positioning constraint — which is what made the loader balloon up and
+ * cover the whole page instead of rendering as a small centered mark. Inline
+ * styles always apply regardless of the host app's CSS tooling.
+ *
  * Each app must have public/images/loader.png (same file, copied per app —
  * there's no cross-app static asset server, so the image ships with every
- * app's own public/ folder) as the fallback mark. No Tailwind config changes
- * required otherwise — the --background / --muted-foreground CSS variables
- * are read from the consuming app, and the shine keyframes are scoped inline
- * so this drops into any app as-is.
+ * app's own public/ folder) as the fallback mark.
  *
  * Pass `ssoServerUrl` + `appSlug` to have the mark stay in sync with the app
  * icon set in core.bansud instead of the static local file — that's edited
@@ -33,6 +41,10 @@ export interface SsoLoaderProps {
   ssoServerUrl?: string
   /** This app's own slug as registered in core.bansud, e.g. 'admin'. Omit to always use imageSrc. */
   appSlug?: string
+  /** Backdrop color behind the mark. Default: '#ffffff' (does not depend on any host CSS variable). */
+  backgroundColor?: string
+  /** Label text color. Default: '#6b7280' (a neutral gray, does not depend on any host CSS variable). */
+  textColor?: string
 }
 
 export function SsoLoader({
@@ -41,47 +53,67 @@ export function SsoLoader({
   fullScreen = true,
   ssoServerUrl,
   appSlug,
+  backgroundColor = '#ffffff',
+  textColor = '#6b7280',
 }: SsoLoaderProps) {
   const { branding } = useAppBranding(ssoServerUrl, appSlug)
   const dynamicIcon = branding?.icon ?? null
   const useDynamicImage = isImageIcon(dynamicIcon)
   const useDynamicEmoji = !!dynamicIcon && !useDynamicImage
 
-  // `fixed inset-0` centers against the viewport directly, regardless of
-  // ancestor height — `min-h-screen` only reserves height if it's actually
-  // the tallest box in the flow, which isn't guaranteed once this drops into
-  // an arbitrary consuming app's route tree.
-  const wrapperClass = fullScreen
-    ? 'fixed inset-0 flex items-center justify-center bg-background'
-    : 'flex items-center justify-center'
+  const wrapperStyle: CSSProperties = fullScreen
+    ? {
+        position: 'fixed',
+        inset: 0,
+        zIndex: 2147483000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor,
+      }
+    : {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }
 
   return (
-    <div className={wrapperClass}>
-      <div className="flex flex-col items-center gap-4 text-center">
+    <div style={wrapperStyle}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, textAlign: 'center' }}>
         {/* Ring sits in its own layer around the mark rather than on the same
             overflow-hidden circle as the logo — the ring's stroke needs to
             extend past the mark's edge, which overflow-hidden would clip. */}
-        <div className="sso-loader-ring-wrap relative flex h-20 w-20 items-center justify-center">
-          <svg className="sso-loader-ring absolute inset-0 h-full w-full" viewBox="0 0 80 80" aria-hidden="true">
+        <div style={{ position: 'relative', display: 'flex', height: 80, width: 80, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <svg
+            className="sso-loader-ring"
+            style={{ position: 'absolute', inset: 0, height: '100%', width: '100%' }}
+            viewBox="0 0 80 80"
+            aria-hidden="true"
+          >
             <circle className="sso-loader-ring-track" cx="40" cy="40" r="36" fill="none" strokeWidth="3" />
             <circle className="sso-loader-ring-progress" cx="40" cy="40" r="36" fill="none" strokeWidth="3" />
           </svg>
-          <div className="sso-loader-mark relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-full">
+          <div
+            style={{
+              position: 'relative', display: 'flex', height: 56, width: 56, alignItems: 'center',
+              justifyContent: 'center', overflow: 'hidden', borderRadius: '50%', flexShrink: 0,
+            }}
+          >
             {useDynamicEmoji ? (
-              <span className="relative z-10 flex h-full w-full items-center justify-center text-2xl leading-none">
+              <span style={{ position: 'relative', zIndex: 10, display: 'flex', height: '100%', width: '100%', alignItems: 'center', justifyContent: 'center', fontSize: 24, lineHeight: 1 }}>
                 {dynamicIcon}
               </span>
             ) : (
               <img
                 src={useDynamicImage ? (dynamicIcon as string) : imageSrc}
                 alt=""
-                className="relative z-10 h-full w-full object-contain"
+                style={{ position: 'relative', zIndex: 10, height: '100%', width: '100%', objectFit: 'contain' }}
               />
             )}
             <span className="sso-loader-shine" aria-hidden="true" />
           </div>
         </div>
-        <p className="flex items-center gap-2 text-sm text-muted-foreground">
+        <p style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: textColor, margin: 0 }}>
           {label}
         </p>
       </div>
@@ -110,11 +142,13 @@ export function SsoLoader({
         .sso-loader-ring-track {
           stroke: currentColor;
           opacity: 0.15;
+          color: ${textColor};
         }
         .sso-loader-ring-progress {
           stroke: currentColor;
           stroke-linecap: round;
           transform-origin: 40px 40px;
+          color: ${textColor};
           /* circumference = 2 * PI * r(36) ≈ 226.19 */
           stroke-dasharray: 226.19;
           animation: sso-loader-ring-progress 1.6s ease-in-out infinite;

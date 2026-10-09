@@ -23,6 +23,11 @@ export { SsoLoader } from './SsoLoader.js'
 export type { SsoLoaderProps } from './SsoLoader.js'
 
 export { useAppBranding, isImageIcon } from './useAppBranding.js'
+
+export { AppSwitcher } from './AppSwitcher.js'
+export type { AppSwitcherProps, SwitcherApp } from './AppSwitcher.js'
+export { deriveHostPalette } from './hostTheme.js'
+export type { SwitcherPalette } from './hostTheme.js'
 export type { AppBranding } from './useAppBranding.js'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
